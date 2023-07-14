@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="renderer" content="webkit">
+  <title>EZOPEN播放协议</title>
+  <style>
+    body {
+      margin: 0;
+    }
+    .hint {
+      font-size: 14px;
+      line-height: 3em;
+      color: gray;
+    }
+    #url,
+    #url2,
+    #accessToken {
+      width: 100%;
+    }
+
+    .btn-container {
+      margin: 10px;
+    }
+    .normal {
+      color: green;
+      margin: 5px;
+    }
+    .error {
+      color: red;
+      margin: 5px;
+    }
+    .encript-hint {
+      font-size: 14px;
+      margin: 20px 10px;
+      color: rgba(0, 0, 0, 0.65);
+    }
+  </style>
+</head>
+<script>
+</script>
+
+<body>
+  <script src="../ezuikit.js"></script>
+  <!-- <script src="../js/jsPlugin-1.2.0.js"></script> -->
+  <script src="../js/jquery.min.js"></script>
+  <div class="hint">The demo page is only a code example and cannot be run directly. It needs to be deployed to the server before it can be played. In addition, the monitoring mode and multi-window mode require the browser version: Chrome: 55+ Firefox: V55 +.</div>
+  <h2>live view and playback function examples：</h2>
+  <textarea id="url" placeholder="Please input Ezopen url">ezopen://GNTDSH@isgpopen.ezviz.com/C95642419/1.live</textarea>
+  <textarea id="accessToken" placeholder="Please input AccessToken, It is recommended use restricted permission token in production environments">at.8u02bggy1m9slfbkc5abshccbyc6rnjk-5mma7iyydf-09awabj-iaxwivahd</textarea>
+  <div class="encript-hint">
+    <b>Important:</b>If play fails, the device may be encrypted, please use the device's decryption interface to decrypt it, or add the device's verification code to the ezopen address. For example ezopen://VerificationCode@open.ys7.com/203751922/1.rec
+  </div>
+  <div class="btn-container">
+    <button id="init">Initialization</button>
+    <button id="stop">End</button>
+    <button id="getOSDTime"> Get OSD time</button>
+    <button id="openSound">Turn on the sound（default）</button>
+    <button id="closeSound">Turn off the sound</button>
+    <button id="capturePicture">Screenshot</button>
+    <button id="startSave">Start recording</button>
+    <button id="stopSave">End recording</button>
+    <button id="enableZoom">Turn on electronic zoom</button>
+    <button id="closeZoom">Turn off electronic zoom</button>
+    <button id="fullScreen" disabled>Full screen</button>
+    <!-- <span>录制功能不支持加密视频，且录制的文件需要<a href="https://service.ys7.com/downloadInfoSite/admin" target="_blank">下载海康播放器播放</a></span> -->
+
+  </div>
+  <div id="playWind" style="width: 600px; height: 400px;">
+  </div>
+  <script>
+    $("#init").click(function () {
+      $("#init").attr('disabled',true);
+      function handleError(e){
+          console.log('catch error',e);
+          $("#init").attr('disabled',false);
+          $("#fullScreen").attr('disabled',true);
+         // log(JSON.stringify(e),'error');
+          //alert(e)
+      }
+      function handleSuccess(){
+        console.log("play success");
+        $("#init").attr('disabled',true);
+        $("#fullScreen").attr('disabled',false);
+      }
+      var url = $('#url').val().trim();
+      var accessToken = $('#accessToken').val().trim();
+      var decoder = new EZUIKit.EZUIPlayer({
+        id: 'playWind',
+        autoplay: true,
+        url: url,
+        accessToken: accessToken,
+        decoderPath: '',
+        width: 600,
+        height: 400,
+        handleError: handleError,
+        handleSuccess: handleSuccess,
+      });
+      // 这里是打印日志，本例抛出到播放页面
+      decoder.on('log', log);
+      function log(str,className) {
+        var div = document.createElement('DIV');
+        div.className=className || 'normal';
+        div.innerHTML = (new Date()).Format('yyyy-MM-dd hh:mm:ss.S') + JSON.stringify(str);
+        document.body.appendChild(div);
+      }
+      $("#start").click(function () {
+        function handleError(e){
+          console.log('handleError',e)
+        }
+        function handleSuccess(){
+          console.log('handleSuccess')
+        }
+        decoder.play({
+          handleError: handleError,
+        });
+      })
+      $("#stop").click(function () {
+        /*停止播放方法1*/
+        // decoder.stop();
+        /*停止播放方法2 - promise模式*/
+        var stopPromise = decoder.stop();
+        stopPromise.then(function(){
+          console.log("close success");
+          $("#init").attr('disabled',false);
+          $("#fullScreen").attr('disabled',true);
+        })
+      })
+      $("#getOSDTime").click(function () {
+        var getOSDTimePromise = decoder.getOSDTime();
+        getOSDTimePromise.then(function(data){
+          console.log("getOSDTime success",data)
+          log('get OSDTime success: ' + data);
+        })
+      })
+      $("#openSound").click(function () {
+        decoder.openSound();
+      })
+      $("#closeSound").click(function () {
+        decoder.closeSound();
+      })
+      $("#capturePicture").click(function () {
+        /*截图方法1*/
+        // decoder.capturePicture(0,'default');
+         /*截图方法2*/
+        var capturePicturePromise = decoder.capturePicture(0,'default');
+        capturePicturePromise.then(function(data){
+          console.log("Screenshot success",data);
+        })
+      })
+      $("#startSave").click(function () {
+        // decoder.startSave(0, (new Date().getTime() + 'video'));
+        /*开始录制方法2*/
+        var startSavePromise = decoder.startSave(0, (new Date().getTime() + 'video'));
+        startSavePromise.then(function(data){
+          console.log("start save success",startSavePromise)
+        })
+        .catch(function(error){
+          console.log("start Save error",error)
+        })
+      })
+      $("#stopSave").click(function () {
+        /*结束录制方法1*/
+        // decoder.stopSave(0);
+        /*结束录制方法2*/
+        var stopSavePromise = decoder.stopSave(0);
+        stopSavePromise.then(function(data){
+          console.log("stop save success",stopSavePromise)
+        })
+        .catch(function(error){
+          console.log("stop Save error",error)
+        })
+      })
+      $("#play").click(function () {
+        decoder.play();
+      })
+      $("#enableZoom").click(function () {
+        decoder.enableZoom();
+      })
+      $("#closeZoom").click(function () {
+        decoder.closeZoom();
+      })
+      $("#fullScreen").click(function () {
+        decoder.fullScreen();
+      })
+    })
+  </script>
+</body>
+
+</html>
